@@ -1,0 +1,84 @@
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+import pandas as pd
+import numpy as np
+from matplotlib.patches import FancyBboxPatch  # 提前导入，方便后续使用
+
+# Matplotlib配置
+plt.style.use('classic')
+mpl.rcParams['font.family'] = 'monospace'
+mpl.rcParams['font.size'] = 10
+mpl.rcParams['text.usetex'] = False  # 禁用LaTeX
+mpl.rcParams['axes.linewidth'] = 0.8
+mpl.rcParams['xtick.major.width'] = 0.8
+mpl.rcParams['ytick.major.width'] = 0.8
+
+# 从CSV文件读取数据
+file_path = r'爱的魔力转圈圈'  # CSV文件路径
+df = pd.read_csv(file_path)
+
+# 数据清理：将无效值替换为NaN并过滤掉无效行
+df['rate'] = pd.to_numeric(df['rate'], errors='coerce')
+df = df.dropna(subset=['rate'])
+
+# 添加颜色列
+unique_genes = df['Gene name'].unique()
+colors = plt.cm.tab20b(np.linspace(0, 1, len(unique_genes)))  # 使用tab20b colormap
+color_mapping = dict(zip(unique_genes, colors))
+df['color'] = df['Gene name'].map(color_mapping)
+
+# 创建图形和坐标轴
+fig, ax = plt.subplots(figsize=(12, 4))
+# 绘制基因箭头
+for _, row in df.iterrows():
+    gene_name = row['Gene name']
+    middle = row['Middle']
+    rate = row['rate']
+    color = row['color']
+    
+    # 简化的方向判断（可以根据实际情况调整）
+    direction = 1  # 正向
+# 绘制箭头
+    arrow_length = 500  # 固定长度
+    start = middle - arrow_length // 2
+    end = middle + arrow_length // 2
+    ax.arrow(start, rate, (end - start) * direction, 0, head_width=0.05, head_length=100, width=0.02, color=color, alpha=0.7)
+
+# 新增部分：修改背景颜色和添加阴影
+# 使用更浅的淡紫色，并设置透明度
+ax.add_patch(FancyBboxPatch((0, 0), 150000, max(df['rate']) * 1.2, facecolor='#f5f5ff', alpha=0.5, zorder=0))
+
+# 新增部分：去除上框线和右框线
+ax.spines['top'].set_visible(False)
+ax.spines['right'].set_visible(False)
+
+# 添加比例尺（位置线）
+if not df.empty:
+    scale_y = max(df['rate']) * 1.1  # 放在最高rate上方
+    ax.plot([0, 150000], [scale_y, scale_y], color='#888888', linewidth=1)
+    ax.text(50000, scale_y + 0.1, '50,000', ha='center', fontsize=8)
+    ax.text(100000, scale_y + 0.1, '100,000', ha='center', fontsize=8)
+    ax.text(150000, scale_y + 0.1, '150,000', ha='center', fontsize=8)
+
+# 设置图表配置
+ax.set_xlabel('Position (bp)', fontsize=12)
+ax.set_ylabel('Relative Binding Rate', fontsize=12)  # 修改后的纵坐标标题
+# ax.set_title('KSHV Gene Expression Rates', fontsize=14)  # 移除标题
+ax.grid(False)
+
+# 增加横坐标刻度
+ax.set_xlim(0, 150000)
+ax.set_xticks([0, 10000, 20000, 40000,50000, 60000, 80000, 100000, 120000, 140000, 150000])  # 增加5000, 10000, 15000的刻度
+if not df.empty:
+    ax.set_ylim(0, max(df['rate']) * 1.2)
+
+# 绘制rate的折线图，改为黑色
+ax.plot(df['Middle'], df['rate'], color='black', linewidth=1.5)  # 修改后的折线样式为纯黑色
+
+# 保存图表
+plt.tight_layout()
+plt.savefig(r'爱总会消失的', dpi=300)
+plt.close()
+
+print("图像已保存到：爱总会消失的")
+
